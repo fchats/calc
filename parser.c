@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <math.h>
+#include <assert.h>
+#include <string.h>
 
 /* Toggle for optional terminal messages for debug */
 #define DEBUG 1
@@ -31,17 +33,27 @@ struct token {
     char* close;
 };
 
+struct op {
+    double a;
+    double b;
+    double (*sym)(double, double);
+    double result;
+    struct op *next;
+    struct op *prev;
+};
+
 /* Function Prototypes */
 void remove_space(char* string);
 char* get_string(size_t *size);
-char** token_eq(char* eq);
 void shift_left(char* string);
-
+struct token *inbrack(char* eq, size_t *eq_size, short *check);
+void pr_substring(char *start, char *end); 
+void set_result(struct op *s);
 
 /* Basic Operator Functions for function pointers */
 double add(double a, double b);
 double sub(double a, double b);
-/* double div(double a, double b); */
+double divd(double a, double b);
 double mul(double a, double b);
 
 /* Debug functions */
@@ -51,51 +63,74 @@ void substring(char *start, char *end);
 
 int main(int argc, char** argv) {
 
-    size_t eq_size;
+    size_t *eq_size;
+    eq_size = (size_t *) malloc(sizeof(size_t));
+
+    assert(eq_size);
     printf("Please enter equation: ");
-    char* eq = get_string(&eq_size);
+    char* eq = get_string(eq_size);
+    remove_space(eq);
     printf("%s\n", eq);
     struct token *r;
-    r = inbrack(eq);
+    short *check;
+    printf("eq_size = %lu\n", *eq_size);
+    check = (short *) malloc((*eq_size) * sizeof(short));
+    assert(check);
+    memset(check, 0, *eq_size * sizeof(check));
+
+    r = inbrack(eq, eq_size, check); 
     pr_substring(r -> open, r -> close);
     exit(EXIT_SUCCESS);
 	
 }
 
-char** token_eq(char* eq) {
-    char *curr = eq;
-    struct token **tokens;
-    while (*curr != '\0' || *curr != EOF) {
-        
-    } 
-}
-
 /* Function to retrieve the innermost bracket
- * Returns pointer to start */
-struct token *inbrack(char* eq) {
+ * Returns struct with pointer to opening bracket and closing bracket
+ * Returns NULL if not brackets found. */
+struct token *inbrack(char* eq, size_t *eq_size, short *check) {
     struct token *r = (struct token *)malloc(sizeof(struct token));
+    assert(r);
     r -> open = (char*) malloc(sizeof(char));
+    assert(r -> open);
     r -> close = (char*) malloc(sizeof(char));
-    r -> open = eq;
-    while (NEND(*(r -> open))) {
-        if (*(r -> open) = OPEN) {
-            r -> close = (r -> open) + 1;
-            while (NEND(*(r -> close))) {
-                if (*(r -> close) == CLOSE) {
-                    return(r);
-                } else {
-                    (r -> close)++;
-                } 
-            }
-        }
+    assert(r -> close);
+    char *p;
+    p = eq;
+    while (NEND(*p)) {
+        if (*p == OPEN && !check[p - eq]) {
+            r -> open = p;
+            p++;
+            continue;
+        } 
+        p++;
     }
-    printf("NO CLOSING BRACKETS\n");
-    exit(EXIT_FAILURE);
+
+    
+    if (r -> open) {
+        p = r -> open;
+    }
+    while (NEND(*p)) {
+        if ((r -> open) && (*p == CLOSE) && !(check[p - eq])) {
+            r -> close = p;
+            check[(r -> open) - eq] = 1;
+            check[p - eq] = 1;
+            return r;
+        }
+        p++;
+    }
+    if (r -> open && !(r -> close)) {
+        printf("BRACKET MISMATCH\n");
+        exit(EXIT_FAILURE);
+    } else {
+        return NULL;
+    }
+
+
 }
 
+/* Simple function to retrieve a string from stdin using getchar()*/
 char* get_string(size_t *size) {
     int i;
-    size = (size_t *)malloc(sizeof(size_t));
     size_t* max = (size_t *)malloc(sizeof(int));
     *max = INIT_MAX;
     char* str;
@@ -105,6 +140,9 @@ char* get_string(size_t *size) {
     for (i = 0; (input = getchar()) != '\n' /*|| input != EOF*/; i++) {
         *(str + i) = input;
         (*size)++;
+        #if (DEBUG)
+        //printf("%lu\n", *size);
+        #endif
         if (*size >= *max) {
             *max = 2 * (*max);
             str = realloc(str, *max);
@@ -113,6 +151,7 @@ char* get_string(size_t *size) {
             #endif
         }
     }
+    //printf("%lu\n", *size);
     return(str);
 }
 
@@ -152,19 +191,23 @@ double mul(double a, double b) {
     return (a * b);
 }
 
-/*
-double div(double a, double b) {
+
+double divd(double a, double b) {
     return (a / b);
 }
-*/
 
+
+void set_result(struct op *s) {
+    s -> result = s -> sym(s -> a, s -> b);
+    return;
+}
 /* Debug Functions */
 #if (DEBUG)
 /* print substring */
-void pr_substing(char *start, char *end) {
+void pr_substring(char *start, char *end) {
     char *p;
     p = start;
-    dir = (end - start) / abs(end - start);
+    short dir = (end - start) / abs(end - start);
     while (p != end) {
         printf("%c", *p);
         p = p + dir;
