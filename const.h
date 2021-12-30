@@ -16,6 +16,8 @@
 /* Initial max string Length */
 #define INIT_MAX 100
 
+/* Constant to muliply realloced size by */
+#define INCREASE 2
 
 #define NL printf("\n");
 #define NEND(a) (a != '\0' && a != EOF)
