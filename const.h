@@ -19,6 +19,6 @@
 /* Constant to muliply realloced size by */
 #define INCREASE 2
 
-#define NL printf("\n");
+#define NL() printf("\n");
 #define NEND(a) (a != '\0' && a != EOF)
 

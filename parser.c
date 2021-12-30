@@ -19,13 +19,19 @@ int main(int argc, char** argv) {
     ops -> eqs = (struct op **) malloc(sizeof(struct op *) * (ops -> max_ops));
     
 
-    size_t *eq_size;
-    eq_size = (size_t *) malloc(sizeof(size_t));
-    assert(eq_size);
+    size_t eq_size;
     printf("Please enter equation: ");
-    char* eq = get_string(eq_size);
+    char* eq = get_string(&eq_size);
+    NL();
     remove_space(eq);
     printf("%s\n", eq); 
+    
+    ops -> str = eq;
+    ops -> eq_size = eq_size;
+    ops -> check = (size_t *) malloc(sizeof(size_t) * eq_size);
+    assert(ops -> check);
+    eval(ops);
+    pr_op_list(ops);
     exit(EXIT_SUCCESS);
 	
 }
@@ -33,7 +39,7 @@ int main(int argc, char** argv) {
 /* Function to retrieve the innermost bracket
  * Returns struct with pointer to opening bracket and closing bracket
  * Returns NULL if not brackets found. */
-struct token *inbrack(char* eq, size_t *eq_size, size_t *check, struct op_list *ops) {
+struct token *inbrack(struct op_list *ops) {
     struct token *r = (struct token *)malloc(sizeof(struct token));
     assert(r);
     r -> open = (char*) malloc(sizeof(char));
@@ -41,9 +47,9 @@ struct token *inbrack(char* eq, size_t *eq_size, size_t *check, struct op_list *
     r -> close = (char*) malloc(sizeof(char));
     assert(r -> close);
     char *p;
-    p = eq;
+    p = ops -> str;
     while (NEND(*p)) {
-        if (*p == OPEN && !check[p - eq]) {
+        if (*p == OPEN && !(ops -> check)[p - (ops -> str)]) {
             r -> open = p;
             p++;
             continue;
@@ -54,9 +60,9 @@ struct token *inbrack(char* eq, size_t *eq_size, size_t *check, struct op_list *
         p = r -> open;
     }
     while (NEND(*p)) {
-        if ((r -> open) && (*p == CLOSE) && !(check[p - eq])) {
+        if ((r -> open) && (*p == CLOSE) && !((ops -> check)[p - (ops -> str)])) {
             r -> close = p;
-            memset((check + *(r -> open)), ops -> op_count,
+            memset(((ops -> check) + *(r -> open)), ops -> op_count,
                     (size_t)((r -> close) - (r -> open))); 
             (ops -> op_count)++;
             return r;
@@ -84,25 +90,40 @@ void set_result(struct op *s) {
 /* Need to pass check down to set_op and use to check if already parsed,
  * then call inbrack as well during one of these two functions.
  * */
-struct op *get_op(char *start, char *end, struct op_list *ops, size_t *check) {
+struct op *get_op(char *start, char *end, struct op_list *ops) {
     struct op *eq = (struct op *) malloc(sizeof(struct op));
     char *p;
     p = start;
-    while (p != end + 1) {
+    if (*start == DIFF) {
+        struct op *ze = (struct op *) malloc(sizeof(struct op));
+        ze -> a = 0;
+        char* num_start = start + 1, *num_end = num_start;
+        while (isdigit(*(num_end + 1)) || *(num_end + 1) == '.') {
+            num_end++;
+        }
+        ze -> b = strtod(num_start, &num_end);
+        ze -> sym = sub;
+        ze -> result = (ze -> sym)(ze -> a, ze -> b);
+        add_op(ze, ops);  
+    }
+    while (p != end) {
         if (*p == POWR) {
 
-            set_op(eq, powe, start, p, end, check);
+            set_op(eq, powe, start, p, end, ops);
+            add_op(eq, ops);
             return (eq);
         }
         p++;
     }
     p = start;
-    while (p != end + 1) { 
+    while (p != end) { 
         if (*p == DIVI) {
-            set_op(eq, divd, start, p, end, check);
+            set_op(eq, divd, start, p, end, ops);
+            add_op(eq, ops);
             return (eq);
         } else if (*p == MULT) {
-            set_op(eq, mul, start, p, end, check);
+            set_op(eq, mul, start, p, end, ops);
+            add_op(eq, ops);
             return (eq);
         }
         p++;
@@ -110,10 +131,12 @@ struct op *get_op(char *start, char *end, struct op_list *ops, size_t *check) {
     p = start;
     while (p != end + 1) {
         if (*p == PLUS) {
-            set_op(eq, add, start, p, end, check);
+            set_op(eq, add, start, p, end, ops);
+            add_op(eq, ops);
             return (eq);
         } else if (*p == DIFF) {
-            set_op(eq, sub, start, p, end, check);
+            set_op(eq, sub, start, p, end, ops);
+            add_op(eq, ops);
             return (eq);
         }
         p++;
@@ -122,13 +145,33 @@ struct op *get_op(char *start, char *end, struct op_list *ops, size_t *check) {
 }
 
 void set_op(struct op *eq, double(*func)(double, double), char *start, char *p,
-            char *end, struct op_list *ops, size_t *check) {  
-    
+            char *end, struct op_list *ops) {  
     
     eq -> sym = func; 
-   
-    eq -> a = strtod(start, &p);
-    eq -> b = strtod(p + 1, &end);
+    char *num_start = start, *num_end = num_start;
+    if ((ops -> check)[start - (ops -> str)]) {
+        eq -> a = (ops -> eqs)[start - (ops -> str)] -> result;
+
+    } else {
+        while ((isdigit(*(num_end + 1)) || *(num_end + 1) == '.') && num_end < p) {
+            num_end++;
+        } 
+        eq -> a = strtod(num_start, &num_end);
+    }
+    memset((ops -> check) + (num_start - (ops -> str)), ops -> op_count, num_end - num_start);
+    num_start = p + 1;
+    num_end = num_start;
+
+    if ((ops -> check)[end - p]) {
+        eq -> b = (ops -> eqs)[end -p] -> result;
+    } else {
+        while ((isdigit(*num_end + 1) || *(num_end + 1) == '.') && num_end <= end) {
+            num_end++;
+        } 
+        eq -> b = strtod(num_start, &num_end);
+    }
+    memset((ops -> check) + (p - (ops -> str)), ops -> op_count, num_end - num_start);
+          
     eq -> result = (eq -> sym)(eq -> a, eq -> b);
     return;
 }
@@ -139,8 +182,34 @@ void add_op(struct op *eq, struct op_list *ops) {
         ops -> eqs = (struct op **) realloc(ops -> eqs, sizeof(struct op *) * ops -> max_ops);
     }
     *(ops -> eqs + ops -> op_count) = eq;
+    eq -> op_num = ops -> op_count;
     ops -> op_count ++;
     return;
+}
+
+struct op_list *eval(struct op_list *ops) {
+    size_t t = 0;
+    struct token *n = (struct token *) malloc(sizeof(struct token));
+    struct op *n_op = (struct op *) malloc(sizeof(struct op));
+
+    while((size_t *)in(&t, ops -> check, ops -> op_count)) {
+        while ((n = inbrack(ops))) {
+            n_op = get_op(n -> open, n -> close, ops);
+            add_op(n_op, ops);
+        }
+    }
+
+    return ops;
+}
+
+void *in(size_t *val, size_t *list, size_t size) {
+    int i;
+    for (i = 0; i < size; i++) {
+        if (*val == list[i]) {
+            return(list + i);
+        }
+    }
+    return(NULL);
 }
 
 /* Debug Functions */
@@ -156,5 +225,20 @@ void pr_substring(char *start, char *end) {
     }
     printf("%c\n", *end);
     return;
+}
+
+void pr_op_list(struct op_list *ops) {
+    int i;
+    for (i = 0; i < (ops -> op_count); i++) {
+        pr_op((ops -> eqs)[i]);
+    }
+}
+void pr_op(struct op *eq) {
+    printf("op_num: %10lud\n", eq -> op_num);
+    printf("     a: %10lf\n", eq -> a);
+    printf("     b: %10lf\n", eq -> b);
+    printf("  func: %p\n", eq -> sym);
+    printf("result: %10lf\n", eq -> result);
+    NL();
 }
 #endif
