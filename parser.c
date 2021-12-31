@@ -30,7 +30,7 @@ int main(int argc, char** argv) {
     ops -> eq_size = eq_size;
     ops -> check = (size_t *) malloc(sizeof(size_t) * eq_size);
     assert(ops -> check);
-    eval(ops);
+    ops = eval(ops);
     pr_op_list(ops);
     exit(EXIT_SUCCESS);
 	
@@ -192,7 +192,7 @@ struct op_list *eval(struct op_list *ops) {
     struct token *n = (struct token *) malloc(sizeof(struct token));
     struct op *n_op = (struct op *) malloc(sizeof(struct op));
 
-    while((size_t *)in(&t, ops -> check, ops -> op_count)) {
+    while(in(&t, ops -> check, ops -> op_count)) {
         while ((n = inbrack(ops))) {
             n_op = get_op(n -> open, n -> close, ops);
             add_op(n_op, ops);
@@ -202,14 +202,14 @@ struct op_list *eval(struct op_list *ops) {
     return ops;
 }
 
-void *in(size_t *val, size_t *list, size_t size) {
+int in(size_t *val, size_t *list, size_t size) {
     int i;
-    for (i = 0; i < size; i++) {
+    for (i = 0; i < size + 1; i++) {
         if (*val == list[i]) {
-            return(list + i);
+            return(1);
         }
     }
-    return(NULL);
+    return(0);
 }
 
 /* Debug Functions */

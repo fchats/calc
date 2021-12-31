@@ -40,7 +40,7 @@ void set_op(struct op *eq, double(*func)(double, double), char *start, char *p,
             char *end, struct op_list *ops);
 void add_op(struct op *eq, struct op_list *ops);
 struct op_list *eval(struct op_list *ops);
-void *in(size_t *val, size_t *list, size_t size);
+int in(size_t *val, size_t *list, size_t size);
 
 /* Debug functions */
 #if (DEBUG)
