@@ -8,6 +8,7 @@ int main() {
     size_t size = 0;
     char* str;
     str = get_string(&size);
+    remove_space(str, &size);
 
     struct op *te;
     te = op_str(str);
@@ -18,17 +19,16 @@ int main() {
 struct op *op_str(char *str) {
 
     struct op *re = (struct op *) malloc(sizeof(struct op));
-        op -> a      = 0;
-        op -> b      = 0;
-        op -> sym    = NULL;
+        re -> a      = 0;
+        re -> b      = 0;
+        re -> sym    = NULL;
         #if DEBUG
-        op -> sym_n  = NULL;
+        re -> sym_n  = NULL;
         #endif
-        op -> result = 0;
+        re -> result = 0;
 
     /* Get operation symbol */
-    char *start, *end, *p, *s;
-    start = str;
+    char *p, *s;
     p = str;
 
     while (*p != '\0') {
@@ -73,12 +73,37 @@ struct op *op_str(char *str) {
         p++;
     }
 
-    /* Get left number (a) */
-    p = s;
-    char* a 
+    /* Get left number (a) 
+     * move p back from symbol until start. */
+    p = s - 1;
+    char *a_start, *a_end;
+    a_end = s - 1;
+    /* Will have to check for closing bracket here but will implement later */
     while (p != str && (isdigit(*p) || *p == '.')) {
-
+        p--;
     }
+    a_start = p;
+    printf("a_start -> a_end = ");
+    pr_substring(a_start, a_end);
+    re -> a = strtod(a_start, &a_end);    
+    
+    /* Get right number (b) 
+     * move p forward from symbol until end. */
+    p = s + 1;
+    char *b_start, *b_end;
+    b_start = s + 1;
+    /* Will have to check for opening bracket here but will implement later */
+    while (p != str && (isdigit(*p) || *p == '.')) {
+        p++;
+    }
+    b_end = p;
+    printf("b_start -> b_end = ");
+    pr_substring(b_start, b_end);
+    re -> b = strtod(b_start, &b_end);
+
+    /* Set op result */
+    re -> result = (re -> sym)(re -> a, re -> b);
+
     return(re);
 }
 
