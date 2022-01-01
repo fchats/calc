@@ -29,12 +29,13 @@ char* get_string(size_t *size) {
 }
 
 
-void remove_space(char* string) {
+void remove_space(char* string, size_t *size) {
     char *p;
     p = string;
     while (*p != '\0') {
         if ((*p) == ' ') {
             shift_left(p);
+            (*size)--;
         }
         p++;
     }

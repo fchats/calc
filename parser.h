@@ -20,6 +20,9 @@ struct op {
     double a;
     double b;
     double (*sym)(double, double);
+    #if DEBUG
+    char *sym_n;
+    #endif
     double result;
 };
 
@@ -33,14 +36,8 @@ struct op_list {
 };
 
 /* Function Prototypes */
-struct token *inbrack(struct op_list *ops);
-void set_result(struct op *s);
-struct op *get_op(char *start, char *end, struct op_list *ops);
-void set_op(struct op *eq, double(*func)(double, double), char *start, char *p, 
-            char *end, struct op_list *ops);
-void add_op(struct op *eq, struct op_list *ops);
-struct op_list *eval(struct op_list *ops);
-int in(size_t *val, size_t *list, size_t size);
+struct op *op_str(char *str);
+
 
 /* Debug functions */
 #if (DEBUG)
