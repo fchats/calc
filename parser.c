@@ -16,6 +16,7 @@ int main() {
     
 }
 
+/* Function to create op struct from given string */
 struct op *op_str(char *str) {
 
     struct op *re = (struct op *) malloc(sizeof(struct op));
