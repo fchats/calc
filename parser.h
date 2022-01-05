@@ -17,13 +17,15 @@ struct token {
 
 struct op {
     size_t op_num;
-    double a;
-    double b;
-    double (*sym)(double, double);
+    double      a;
+    double      b;
+    double      (*sym)(double, double);
     #if DEBUG
-    char *sym_n;
+    char        *sym_n;
     #endif
-    double result;
+    double      result;
+    char        *op_start;
+    char        *op_end;
 };
 
 struct op_list {
@@ -31,13 +33,15 @@ struct op_list {
     size_t max_ops;
     struct op **eqs;
     char   *str;
-    size_t eq_size;
-    size_t *check;
+    size_t str_size;
+    int *check;
 };
 
 /* Function Prototypes */
-struct op *op_str(char *str);
-
+struct op *op_str(char *str, char *end, struct op_list *ops);
+struct op_list *new_op_list(char *str, size_t str_size);
+void add_op(struct op_list *ops, struct op *eq);
+short in(int val, int *list, size_t size);
 
 /* Debug functions */
 #if (DEBUG)

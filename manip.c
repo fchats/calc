@@ -52,3 +52,11 @@ void shift_left(char* string) {
     return;
 }
 
+char *get_end(char* str) {
+    char *p;
+    p = str;
+    while (*p != '\0') {
+        p++;
+    }
+    return p;
+}
