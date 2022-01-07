@@ -42,6 +42,8 @@ struct op *op_str(char *str, char *end, struct op_list *ops);
 struct op_list *new_op_list(char *str, size_t str_size);
 void add_op(struct op_list *ops, struct op *eq);
 short in(int val, int *list, size_t size);
+struct token *inbrack(struct op_list *ops);
+void eval(struct op_list *ops);
 
 /* Debug functions */
 #if (DEBUG)

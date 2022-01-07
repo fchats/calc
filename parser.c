@@ -10,41 +10,72 @@ int main() {
     remove_space(str, &size);
 
     /* tests for the op struct */
-    struct op *te;
+    //struct op *te;
 
     /* tests for the op_list struct */
     struct op_list *ops = new_op_list(str, size);
 
+    /*
     while (in(-1, ops -> check, ops -> str_size)) {
         te = op_str(ops -> str, get_end(ops -> str), ops);
         add_op(ops, te);
     }
     pr_op_list(ops); 
     printf("%s = %lf\n", ops -> str, (ops -> eqs)[ops -> op_count - 1] -> result);
+    */
+    /* test inbrack */
+    /*
+    struct token *test;
+    test = inbrack(ops);
+    pr_substring(test -> open, test -> close);
+    */
+    eval(ops);
+    #if DEBUG
+    pr_op_list(ops);
+    #endif
 }
 
-struct token inbrack(struct op_list *ops) {
+void eval(struct op_list *ops) {
+    struct op *te;
+    struct token *to;
+    while(in(-1, ops -> check, ops -> str_size)) {
+        if ((to = inbrack(ops))) {
+            te = op_str(to -> open, to -> close, ops);
+            
+        } else {
+            te = op_str(ops -> str, get_end(ops -> str), ops);
+        }
+        add_op(ops, te);
+    }
+}
+struct token *inbrack(struct op_list *ops) {
     /* Checking for brackets */
-    /* UP TO HERE */
+    
     char *open, *close;
     struct token *t;
     t = (struct token *) malloc(sizeof(struct token));
     t -> open = NULL;
     t -> close = NULL;
         
-    for (open = ops -> str; *open != '\0' && t -> open != EOF; open++) {
-        if (*p == OPEN) {
-                if (*close == OPEN) {
+    for (open = ops -> str; open != get_end(ops -> str) && *open != EOF; open++) {
+        printf("%c ", *open);
+        if (*open == OPEN && (ops -> check)[open - (ops -> str)] == -1) {
+            for (close = open + 1; *close != '\0' && *close != EOF; close++) { 
+                #if DEBUG
+                printf("%c ", *close);
+                #endif
+                if (*close == OPEN && (ops -> check)[close - (ops -> str)] == -1) {
                     open = close; 
-                } else if (*close == CLOSE) {
+                } else if (*close == CLOSE && (ops -> check)[close - (ops -> str)] == -1) {
                     t -> open = open;
                     t -> close = close;
                     return t;
-                }
-                close++;
+                }    
             }
+        NL();   
         }
-    }
+    } 
+    t = NULL;
     return t;
 }
 /* add op to op_list 
@@ -60,7 +91,7 @@ void add_op(struct op_list *ops, struct op *eq) {
     (ops -> eqs)[ops -> op_count] = eq;
     char *p;
     p = eq -> op_start;
-    while (p != eq -> op_end) {
+    while (p != eq -> op_end + 1) {
         (ops -> check)[p - (ops -> str)] = ops -> op_count;
         printf("Adding %lu in check[%ld]\n", ops -> op_count, p - (ops -> str));
         p++;
@@ -182,8 +213,16 @@ struct op *op_str(char *str, char *end, struct op_list *ops) {
     /* Get left number (a) 
      * move p back from symbol until start. */
     if (ops -> check[(s - 1) - str] != -1) {
-        re -> a = (ops -> eqs)[ops -> check[(s - 1) - str]] -> result;
-        re -> op_start = (ops -> eqs)[ops -> check[s - 1 - str]] -> op_start;
+        /* Absolutely scuffed */
+        if (*(s - 1) == CLOSE) {
+
+            re -> a = (ops -> eqs)[ops -> check[s - 1 - str]] -> result;
+            re -> op_start = (ops -> eqs)[ops -> check[s - 1 - str]] -> op_start;
+        } else {
+            re -> a = (ops -> eqs)[ops -> check[s - 1 - str]] -> result;
+            re -> op_start = (ops -> eqs)[ops -> check[s - str]] -> op_start;
+            
+        }
     } else {
 
         p = s - 1;
@@ -197,10 +236,13 @@ struct op *op_str(char *str, char *end, struct op_list *ops) {
         //printf("a_start -> a_end = ");
         //pr_substring(a_start, a_end);
         re -> a = strtod(a_start, &a_end);    
-        re -> op_start = a_start;
+        if (isdigit(*a_start) && *(a_start - 1) == OPEN) {
+            re -> op_start = a_start - 1;
+        } else {    
+            re -> op_start = a_start;
+        }
         
     }
-    
     /* Get right number (b) 
      * move p forward from symbol until end. */
     if (ops -> check[(s + 1) - str] != -1) {
@@ -243,10 +285,9 @@ short in(int val, int *list, size_t size) {
 void pr_substring(char *start, char *end) {
     char *p;
     p = start;
-    short dir = (end - start) / abs(end - start); 
-    while (p != end + 1 || p - 1 != start) {
+    while (p != end) {
         printf("%c", *p);
-        p = p + dir;
+        p++;
     }
     printf("%c\n", *end);
     return;
