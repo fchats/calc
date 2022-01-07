@@ -20,9 +20,33 @@ int main() {
         add_op(ops, te);
     }
     pr_op_list(ops); 
-    printf("%s = %lf\n", ops -> str, (ops -> eqs)[ops -> op_count] -> result);
+    printf("%s = %lf\n", ops -> str, (ops -> eqs)[ops -> op_count - 1] -> result);
 }
 
+struct token inbrack(struct op_list *ops) {
+    /* Checking for brackets */
+    /* UP TO HERE */
+    char *open, *close;
+    struct token *t;
+    t = (struct token *) malloc(sizeof(struct token));
+    t -> open = NULL;
+    t -> close = NULL;
+        
+    for (open = ops -> str; *open != '\0' && t -> open != EOF; open++) {
+        if (*p == OPEN) {
+                if (*close == OPEN) {
+                    open = close; 
+                } else if (*close == CLOSE) {
+                    t -> open = open;
+                    t -> close = close;
+                    return t;
+                }
+                close++;
+            }
+        }
+    }
+    return t;
+}
 /* add op to op_list 
  * function assumes that both op_list and op 
  * have been malloced */
@@ -152,7 +176,8 @@ struct op *op_str(char *str, char *end, struct op_list *ops) {
     }
 
     if (!found) {
-        fprintf(stderr, "NO OPERATION FOUND:");
+        fprintf(stderr, "NO OPERATION FOUND\n");
+        exit(EXIT_FAILURE);
     }
     /* Get left number (a) 
      * move p back from symbol until start. */
