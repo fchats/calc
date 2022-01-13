@@ -8,27 +8,7 @@ int main() {
     printf("Please enter an equation: \n");
     str = get_string(&size);
     remove_space(str, &size);
-
-    /* tests for the op struct */
-    //struct op *te;
-
-    /* tests for the op_list struct */
     struct op_list *ops = new_op_list(str, size);
-
-    /*
-    while (in(-1, ops -> check, ops -> str_size)) {
-        te = op_str(ops -> str, get_end(ops -> str), ops);
-        add_op(ops, te);
-    }
-    pr_op_list(ops); 
-    printf("%s = %lf\n", ops -> str, (ops -> eqs)[ops -> op_count - 1] -> result);
-    */
-    /* test inbrack */
-    /*
-    struct token *test;
-    test = inbrack(ops);
-    pr_substring(test -> open, test -> close);
-    */
     eval(ops);
     #if DEBUG
     pr_op_list(ops);
@@ -71,6 +51,8 @@ struct token *inbrack(struct op_list *ops) {
                     t -> close = close;
                     return t;
                 }    
+                fprintf(stderr, "BRACKET MISMATCH \n");
+                exit(EXIT_FAILURE);
             }
         NL();   
         }
