@@ -18,7 +18,7 @@ double divd(double a, double b) {
     return (a / b);
 }
 
-double powe(double a, double b) {
+double powr(double a, double b) {
     return(pow(a, b));
 }
 

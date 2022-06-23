@@ -8,6 +8,7 @@ B = ./build/
 $(B)parser: $(OBS) $(HEAD) $(SRC)
 	$(CC) $(CFLAGS) -o $(B)parser $(OBS)
 	mv *.o ./build
+	trash parser
 	ln -s ./build/parser ./parser
 
 $(B)parser.o: $(SRC) $(HEAD) ./build/basic.o ./build/manip.o

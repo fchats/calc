@@ -2,16 +2,16 @@
 #define DEBUG 1
 
 /* Symbols to parse */
-#define PLUS  '+'
-#define MULT  '*'
-#define DIFF  '-'
-#define DIVI  '/'
+#define PLUS  "+"
+#define MULT  "*"
+#define DIFF  "-"
+#define DIVI  "/"
 
-#define OPEN  '('
-#define CLOSE ')'
+#define OPEN  "("
+#define CLOSE ")"
 
-#define POWR  '^'
-#define MOD   '%'
+#define POWR  "^"
+#define MOD   "%"
 
 /* Initial max string Length */
 #define INIT_MAX 100

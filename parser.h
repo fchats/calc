@@ -16,7 +16,7 @@ struct token {
 };
 
 struct op {
-    size_t op_num;
+    size_t      op_num;
     double      a;
     double      b;
     double      (*sym)(double, double);
@@ -45,9 +45,13 @@ short in(int val, int *list, size_t size);
 struct token *inbrack(struct op_list *ops);
 void eval(struct op_list *ops);
 
+char *str_silce(char *str, char *dest, int start, int end);
+short charcmp(char a, char b);
+
 /* Debug functions */
 #if (DEBUG)
-void substring(char *start, char *end);
+void pr_substring(char *start, char *end);
 void pr_op_list(struct op_list *ops);
 void pr_op(struct op *eq);
+void prInt_list(int* arr, int size);
 #endif

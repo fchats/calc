@@ -1,24 +1,42 @@
 #include "parser.h"
 
-int main() {
+int main(int argc, char** argv) {
 
-    /* handle input */
+    /* Check if debug mode is enabled */
+    if (argc > 0) {
+        printf("argc: %d\n", argc);
+        printf("argv[0]: %s\n", argv[0]);
+    } 
+    /* Get and handle input */
     size_t size = 0;
     char* str;
     printf("Please enter an equation: \n");
     str = get_string(&size);
     remove_space(str, &size);
+
+    /* Contruct operation linked list */
     struct op_list *ops = new_op_list(str, size);
+    /* Evaluate Operations list */
     eval(ops);
+
+
     #if DEBUG
     pr_op_list(ops);
     #endif
 }
 
+/* Function to evaluate an expression represented by an ops list */
 void eval(struct op_list *ops) {
-    struct op *te;
-    struct token *to;
+
+    
+    struct op       *te;
+    struct token    *to;
+
+
     while(in(-1, ops -> check, ops -> str_size)) {
+        #if DEBUG
+        prInt_list(ops -> check, ops -> str_size); 
+        #endif
         if ((to = inbrack(ops))) {
             te = op_str(to -> open, to -> close, ops);
             
@@ -28,6 +46,8 @@ void eval(struct op_list *ops) {
         add_op(ops, te);
     }
 }
+
+/* function to return a token of a bracketed expression */
 struct token *inbrack(struct op_list *ops) {
     /* Checking for brackets */
     
@@ -39,14 +59,14 @@ struct token *inbrack(struct op_list *ops) {
         
     for (open = ops -> str; open != get_end(ops -> str) && *open != EOF; open++) {
         printf("%c ", *open);
-        if (*open == OPEN && (ops -> check)[open - (ops -> str)] == -1) {
+        if (!strcmp(open, OPEN) && (ops -> check)[open - (ops -> str)] == -1) {
             for (close = open + 1; *close != '\0' && *close != EOF; close++) { 
                 #if DEBUG
                 printf("%c ", *close);
                 #endif
-                if (*close == OPEN && (ops -> check)[close - (ops -> str)] == -1) {
+                if (!strcmp(close, OPEN)  && (ops -> check)[close - (ops -> str)] == -1) {
                     open = close; 
-                } else if (*close == CLOSE && (ops -> check)[close - (ops -> str)] == -1) {
+                } else if (strcmp(close, CLOSE) && (ops -> check)[close - (ops -> str)] == -1) {
                     t -> open = open;
                     t -> close = close;
                     return t;
@@ -66,7 +86,7 @@ struct token *inbrack(struct op_list *ops) {
 void add_op(struct op_list *ops, struct op *eq) {
 
     /* Increase size if op_list too long */
-    if (ops -> max_ops == ops -> op_count) {
+    if (ops -> max_ops >= ops -> op_count) {
         ops -> max_ops = ops -> max_ops * INCREASE;
         ops -> eqs = (struct op **) realloc(ops -> eqs, ops -> max_ops);
     }
@@ -124,47 +144,64 @@ struct op *op_str(char *str, char *end, struct op_list *ops) {
 
     struct op *re = (struct op *) malloc(sizeof(struct op));
     assert(re);
-        re -> a      = 0;
-        re -> b      = 0;
-        re -> sym    = NULL;
+        re -> a         = 0;
+        re -> b         = 0;
+        re -> sym       = NULL;
+        re -> result    = 0;
         #if DEBUG
-        re -> sym_n  = NULL;
+        re -> sym_n     = NULL;
         #endif
-        re -> result = 0;
 
     /* Get operation symbol */
-    char *p, *s;
+    char *p, *symbol;
     p = str;
     unsigned short found = 0;
-
+ 
+    /* BODMAS Order/Exponent */
     while (p != end && !found) {
-        if (*p == DIVI && ops -> check[p - str] == -1) {
+        if (charcmp(*p, *POWR) && ops -> check[p - str] == -1) {
+            re -> sym = powr;
+            #if DEBUG
+            re -> sym_n = (char *)malloc(sizeof(char) * 4);
+            assert(re -> sym_n);
+            re -> sym_n = "power";
+            #endif 
+            symbol = p;
+            found = 1;
+            break;
+        }
+    }
+
+    /* BODMAS Divide and Multiply */
+    while (p != end && !found) {
+        if (charcmp(*p, *DIVI) && ops -> check[p - str] == -1) {
             re -> sym = divd;
             #if DEBUG
             re -> sym_n = (char*) malloc(sizeof(char) * 4);
             assert(re -> sym_n);
             re -> sym_n = "divd";
             #endif
-            s = p;
+            symbol = p;
             found = 1;
             break;
-        } else if (*p == MULT && ops -> check[p - str] == -1) {
+        } else if (charcmp(*p, *MULT) && ops -> check[p - str] == -1) {
             re -> sym = mul;
             #if DEBUG
             re -> sym_n = (char*) malloc(sizeof(char) * 3);
             assert(re -> sym_n);
             re -> sym_n = "mul";
             #endif
-            s = p;
+            symbol = p;
             found = 1;
             break;
         } 
         p++;
     }
 
+    /* BODMAS Addition and Subtraction */
     p = str;
     while (p != end && !found) {
-        if (*p == PLUS && ops -> check[p - str] == -1) {
+        if (charcmp(*p, *PLUS) && ops -> check[p - str] == -1) {
             re -> sym = add;
             #if DEBUG
             re -> sym_n = (char *) malloc(sizeof(char) * 3);
@@ -172,44 +209,49 @@ struct op *op_str(char *str, char *end, struct op_list *ops) {
             re -> sym_n = "add";
             #endif
             found = 1;
-            s = p;
+            symbol = p;
             break;
-        } else if (*p == DIFF && ops -> check[p - str] == -1) {
+        } else if (charcmp(*p, *DIFF) && ops -> check[p - str] == -1) {
+            /* to handle possible unary minus, treat it like addition 
+             * must be handled at the evaluation stage though */
             re -> sym = sub;
             #if DEBUG
             re -> sym_n = (char *) malloc(sizeof(char) * 3);
             assert(re -> sym_n);
             re -> sym_n = "sub";
             #endif
-            s = p;
+            symbol = p;
             found = 1;
             break;
         }
         p++;
     }
 
+    /* No operation was found.*/
     if (!found) {
         fprintf(stderr, "NO OPERATION FOUND\n");
         exit(EXIT_FAILURE);
     }
+
+
     /* Get left number (a) 
      * move p back from symbol until start. */
-    if (ops -> check[(s - 1) - str] != -1) {
+    if (ops -> check[(symbol - 1) - str] != -1) {
         /* Absolutely scuffed */
-        if (*(s - 1) == CLOSE) {
+        if (!strcmp(symbol - 1, CLOSE)) {
 
-            re -> a = (ops -> eqs)[ops -> check[s - 1 - str]] -> result;
-            re -> op_start = (ops -> eqs)[ops -> check[s - 1 - str]] -> op_start;
+            re -> a = (ops -> eqs)[ops -> check[symbol - 1 - str]] -> result;
+            re -> op_start = (ops -> eqs)[ops -> check[symbol - 1 - str]] -> op_start;
         } else {
-            re -> a = (ops -> eqs)[ops -> check[s - 1 - str]] -> result;
-            re -> op_start = (ops -> eqs)[ops -> check[s - str]] -> op_start;
+            re -> a = (ops -> eqs)[ops -> check[symbol - 1 - str]] -> result;
+            re -> op_start = (ops -> eqs)[ops -> check[symbol - str]] -> op_start;
             
         }
     } else {
 
-        p = s - 1;
+        p = symbol - 1;
         char *a_start, *a_end;
-        a_end = s - 1;
+        a_end = symbol - 1;
         /* Will have to check for closing bracket here but will implement later */
         while (p != str && (isdigit(*(p - 1)) || *(p - 1) == '.')) {
             p--;
@@ -218,7 +260,7 @@ struct op *op_str(char *str, char *end, struct op_list *ops) {
         //printf("a_start -> a_end = ");
         //pr_substring(a_start, a_end);
         re -> a = strtod(a_start, &a_end);    
-        if (isdigit(*a_start) && *(a_start - 1) == OPEN) {
+        if (isdigit(*a_start) && !strcmp(a_start - 1, OPEN)) {
             re -> op_start = a_start - 1;
         } else {    
             re -> op_start = a_start;
@@ -227,13 +269,13 @@ struct op *op_str(char *str, char *end, struct op_list *ops) {
     }
     /* Get right number (b) 
      * move p forward from symbol until end. */
-    if (ops -> check[(s + 1) - str] != -1) {
-        re -> b = (ops -> eqs)[ops -> check[(s + 1) - str]] -> result;
-        re -> op_end = (ops -> eqs)[ops -> check[(s + 1) - str]] -> op_end;
+    if (ops -> check[(symbol + 1) - str] != -1) {
+        re -> b = (ops -> eqs)[ops -> check[(symbol + 1) - str]] -> result;
+        re -> op_end = (ops -> eqs)[ops -> check[(symbol + 1) - str]] -> op_end;
     } else { 
-        p = s + 1;
+        p = symbol + 1;
         char *b_start, *b_end;
-        b_start = s + 1;
+        b_start = symbol + 1;
         /* Will have to check for opening bracket here but will implement later */
         while (p != end && (isdigit(*(p + 1)) || *(p + 1) == '.')) {
             p++;
@@ -259,6 +301,22 @@ short in(int val, int *list, size_t size) {
         }
     }
     return(0);
+}
+
+
+/* Returns string slice, destination must be malloced */
+char *str_slice(char *str, char *dest, int start, int end) {
+   strncpy( dest, str + start, end - start );
+   return dest;
+}
+
+short charcmp(char a, char b) {
+    if (a == b) {
+        return 1;
+    } else {
+        return 0;
+    }
+    
 }
 
 /* Debug Functions */
@@ -306,5 +364,13 @@ void pr_op(struct op *eq) {
     printf("op_start: %c\n", *(eq -> op_start));
     printf("  op_end: %c\n", *(eq -> op_end));
     NL();
+}
+
+void prInt_list(int* arr, int size) {
+    for (int i; i < size; i++) {
+        printf("%d ", arr[i]);
+    }
+    NL();
+    return;
 }
 #endif
